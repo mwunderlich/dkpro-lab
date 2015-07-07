@@ -17,13 +17,10 @@
  */
 package de.tudarmstadt.ukp.dkpro.lab.task.impl;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
-import java.util.Properties;
-import java.util.Random;
+import de.tudarmstadt.ukp.dkpro.lab.Lab;
+import de.tudarmstadt.ukp.dkpro.lab.engine.TaskContext;
+import de.tudarmstadt.ukp.dkpro.lab.storage.impl.PropertiesAdapter;
+import de.tudarmstadt.ukp.dkpro.lab.task.Task;
 
 import org.apache.commons.io.FileUtils;
 import org.junit.Before;
@@ -31,17 +28,15 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 
-import de.tudarmstadt.ukp.dkpro.lab.Lab;
-import de.tudarmstadt.ukp.dkpro.lab.engine.TaskContext;
-import de.tudarmstadt.ukp.dkpro.lab.storage.impl.PropertiesAdapter;
-import de.tudarmstadt.ukp.dkpro.lab.task.Task;
+import java.io.File;
+import java.util.*;
 
 /**
  * @author Ivan Habernal
  */
 public class MultiThreadTaskPerformanceTest
 {
-    private BatchTask batchTask;
+    private DefaultBatchTask batchTask;
 
     @Rule
     public TestName name = new TestName();
@@ -55,7 +50,7 @@ public class MultiThreadTaskPerformanceTest
         FileUtils.deleteQuietly(path);
 
         //        batchTask = new BatchTask();
-        batchTask = new MultiThreadBatchTask(10);
+        batchTask = new DefaultBatchTask();
     }
 
     static class DummyTask
@@ -69,7 +64,6 @@ public class MultiThreadTaskPerformanceTest
             data.setProperty("key", "value");
 
             aContext.storeBinary("DATA", new PropertiesAdapter(data));
-            // Thread.sleep(10 * 1000); // MW: Pause for 10 seconds; uncomment (and adapt) this, if there is no noticable performance increase using the MultiThreadBatchTask
         }
     }
 
@@ -123,11 +117,7 @@ public class MultiThreadTaskPerformanceTest
         for (Task t : allTasksShuffled) {
             batchTask.addTask(t);
         }
-        
-        Date startTime = new Date();
+
         Lab.getInstance().run(batchTask);
-        Date endTime = new Date();
-        
-        System.out.println("Total runtime [ms]: " + (endTime.getTime() - startTime.getTime()));
     }
 }

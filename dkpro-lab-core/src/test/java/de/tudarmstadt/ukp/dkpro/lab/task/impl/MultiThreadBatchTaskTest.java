@@ -17,9 +17,10 @@
  */
 package de.tudarmstadt.ukp.dkpro.lab.task.impl;
 
-import java.io.File;
-import java.util.Map;
-import java.util.Properties;
+import de.tudarmstadt.ukp.dkpro.lab.Lab;
+import de.tudarmstadt.ukp.dkpro.lab.engine.TaskContext;
+import de.tudarmstadt.ukp.dkpro.lab.storage.impl.PropertiesAdapter;
+import de.tudarmstadt.ukp.dkpro.lab.task.*;
 
 import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
@@ -28,14 +29,9 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 
-import de.tudarmstadt.ukp.dkpro.lab.Lab;
-import de.tudarmstadt.ukp.dkpro.lab.engine.TaskContext;
-import de.tudarmstadt.ukp.dkpro.lab.storage.impl.PropertiesAdapter;
-import de.tudarmstadt.ukp.dkpro.lab.task.ConfigurationAware;
-import de.tudarmstadt.ukp.dkpro.lab.task.Dimension;
-import de.tudarmstadt.ukp.dkpro.lab.task.Discriminator;
-import de.tudarmstadt.ukp.dkpro.lab.task.ParameterSpace;
-import de.tudarmstadt.ukp.dkpro.lab.task.Task;
+import java.io.File;
+import java.util.Map;
+import java.util.Properties;
 
 public class MultiThreadBatchTaskTest
 {
@@ -48,8 +44,7 @@ public class MultiThreadBatchTaskTest
         FileUtils.deleteQuietly(path);
     }
 
-    //@Test(expected = RuntimeException.class) // TODO MW: Check why the exception is different here now
-    @Test(expected = de.tudarmstadt.ukp.dkpro.lab.engine.ExecutionException.class)
+    @Test(expected = RuntimeException.class)
     public void importTest()
             throws Exception
     {
@@ -84,7 +79,7 @@ public class MultiThreadBatchTaskTest
 
         consumer.addImport(producer, "DATA1", "DATA");
 
-        BatchTask batch = new MultiThreadBatchTask();
+        DefaultBatchTask batch = new DefaultBatchTask();
         //                BatchTask batch = new BatchTask();
         batch.addTask(producer);
         batch.addTask(consumer);
@@ -99,7 +94,7 @@ public class MultiThreadBatchTaskTest
         Dimension innerDim = Dimension.create("inner", "1", "2", "3");
         ParameterSpace innerPSpace = new ParameterSpace(innerDim);
         //        BatchTask innerTask = new BatchTask()
-        BatchTask innerTask = new MultiThreadBatchTask()
+        DefaultBatchTask innerTask = new DefaultBatchTask()
         {
             @Override
             public void setConfiguration(Map<String, Object> aConfig)
@@ -114,7 +109,7 @@ public class MultiThreadBatchTaskTest
         Dimension outerDim = Dimension.create("outer", "1", "2", "3");
         ParameterSpace outerPSpace = new ParameterSpace(outerDim);
         //        BatchTask outerTask = new BatchTask()
-        BatchTask outerTask = new MultiThreadBatchTask()
+        DefaultBatchTask outerTask = new DefaultBatchTask()
         {
             @Override
             public void setConfiguration(Map<String, Object> aConfig)
@@ -135,14 +130,13 @@ public class MultiThreadBatchTaskTest
             throws Exception
     {
         //        BatchTask innerTask = new BatchTask()
-        BatchTask innerTask = new MultiThreadBatchTask()
+        DefaultBatchTask innerTask = new DefaultBatchTask()
         {
             @Discriminator
             private Integer outer;
 
             @Override
-            public void execute(TaskContext aContext)
-                    throws Exception
+            public ParameterSpace getParameterSpace()
             {
                 // Dynamically configure parameter space of nested batch task
                 Integer[] values = new Integer[outer];
@@ -151,12 +145,10 @@ public class MultiThreadBatchTaskTest
                 }
                 Dimension<Integer> innerDim = Dimension.create("inner", values);
                 ParameterSpace innerPSpace = new ParameterSpace(innerDim);
-                setParameterSpace(innerPSpace);
-
-                // Execute the batch task
-                super.execute(aContext);
+                
+                return innerPSpace;
             }
-
+            
             @Override
             public void setConfiguration(Map<String, Object> aConfig)
             {
@@ -168,7 +160,7 @@ public class MultiThreadBatchTaskTest
 
         Dimension<Integer> outerDim = Dimension.create("outer", 1, 2, 3);
         ParameterSpace outerPSpace = new ParameterSpace(outerDim);
-        BatchTask outerTask = new MultiThreadBatchTask()
+        DefaultBatchTask outerTask = new DefaultBatchTask()
         {
             @Override
             public void setConfiguration(Map<String, Object> aConfig)
@@ -184,8 +176,7 @@ public class MultiThreadBatchTaskTest
         Lab.getInstance().run(outerTask);
     }
 
-    //@Test(expected = RuntimeException.class) // TODO MW: Check why the exception is different here now
-    @Test(expected = de.tudarmstadt.ukp.dkpro.lab.engine.ExecutionException.class)
+    @Test(expected = RuntimeException.class)
     public void testUnresolvable()
             throws Exception
     {
@@ -222,7 +213,7 @@ public class MultiThreadBatchTaskTest
         task2.addImport(task1, "DUMMY");
         task1.addImport(task2, "DUMMY");
 
-        BatchTask batchTask = new MultiThreadBatchTask();
+        DefaultBatchTask batchTask = new DefaultBatchTask();
         batchTask.setParameterSpace(pSpace);
         batchTask.addTask(task1);
         batchTask.addTask(task2);
